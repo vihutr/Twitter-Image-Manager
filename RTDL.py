@@ -2,11 +2,13 @@
 # encoding: utf-8
 
 import tweepy #https://github.com/tweepy/tweepy
+import twitter
 from decouple import config
 import urllib
 import requests
 from bs4 import BeautifulSoup
 import csv
+import re
 from TwitterAPI import TwitterAPI
 
 #Twitter API credentials
@@ -15,7 +17,6 @@ consumer_secret = config('consumer_secret')
 access_key = config('access_key')
 access_secret = config('access_secret')
 bearer_token = config('bearer_token')
-QUERY = 'pizza'
 
 def get_tweets(screen_name):
     print("Authorizing...")
@@ -30,19 +31,35 @@ def get_tweets(screen_name):
         print(item)
         USER_ID = item['id']
 
+    # rx = re.compile(r"(https://[^ ]+)")
+
     # Get tweets - default setting
     print("Get tweets - default setting")
-    tweets = api.request(f'users/:{USER_ID}/tweets')
-    for t in tweets:
-        print(t)
+    params = {'max_results': 5, 'tweet.fields': 'created_at', }
+    tweets = api.request(f'users/:{USER_ID}/tweets', params)
+    imgcnt = 0
+    for i, t in enumerate(tweets):
+        print(str(i) + "   id: " + t['id'])
+        tweetmatch = re.search("(?P<url>https?://[^\s]+)", t['text'])
+        if tweetmatch:
+            turl = tweetmatch.group(0)
+            print("   url: " + turl)
+            #req = requests.get(turl)#, headers = {'HEADERS GO HERE'})
+            #bs = BeautifulSoup(req.content, 'html.parser')
+            #print(bs.prettify())
+            #imgUrl = bs.find('img', attrs={'alt': 'Embedded image permalink'}).get('src')
+            #urllib.urlretrieve(imgUrl, "cnn.jpg")
+        imgcnt += 1
+        #print(rx.sub(r'<a href="\1">\1</a>', t['text']))
 
+    '''
     # Get tweets with customization - (5 tweets only with created_at timestamp)
     print()
     print("Get tweets with customization - (5 tweets only with created_at timestamp)")
     params = {'max_results': 5, 'tweet.fields': 'created_at'}
     tweets = api.request(f'users/:{USER_ID}/tweets', params)
     for t in tweets:
-        print(t)
+        print(t['text'])
         
     # Get next 5 tweets
     print()
@@ -51,9 +68,8 @@ def get_tweets(screen_name):
     params = {'max_results': 5, 'tweet.fields': 'created_at', 'pagination_token': next_token}
     tweets = api.request(f'users/:{USER_ID}/tweets', params)
     for t in tweets:
-        print(t) 
-    
-
+        print(t['text'])
+    '''
     #print(r.get_quota())
     
 
@@ -170,7 +186,14 @@ def get_tweets(screen_name):
     
     pass
 
+'''
+def getTweets():
+    api = twitter.Api(consumer_key = consumer_key, consumer_secret = consumer_secret, access_token_key = access_key, access_token_secret = access_secret, )
+    results = api.GetSearch(raw_query="q=twitter%20&result_type=recent&since=2014-07-19&count=100")
+    print(results)'''
+
 
 if __name__ == '__main__':
 	#pass in the username of the account you want to download
 	get_tweets("varkhalinex")
+    #getTweets()
