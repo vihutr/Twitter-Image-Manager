@@ -2,7 +2,6 @@
 # encoding: utf-8
 
 import tweepy #https://github.com/tweepy/tweepy
-import twitter
 from decouple import config
 import urllib
 import requests
