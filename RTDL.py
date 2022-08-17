@@ -15,11 +15,12 @@ consumer_secret = config('consumer_secret')
 access_key = config('access_key')
 access_secret = config('access_secret')
 bearer_token = config('bearer_token')
+test_username = config('test_username')
 QUERY = 'pizza'
 
 def get_tweets(screen_name):
     print("Authorizing...")
-    # Use Version 2 Endpoint
+    # Version 2 Endpoint
     api = TwitterAPI(consumer_key, consumer_secret, access_key, access_secret, api_version='2')
     print("Authorized!")
     print("Searching...")
@@ -31,22 +32,20 @@ def get_tweets(screen_name):
         USER_ID = item['id']
 
     # Get tweets - default setting
-    print("Get tweets - default setting")
+    print("\nGet tweets - default setting")
     tweets = api.request(f'users/:{USER_ID}/tweets')
     for t in tweets:
         print(t)
 
     # Get tweets with customization - (5 tweets only with created_at timestamp)
-    print()
-    print("Get tweets with customization - (5 tweets only with created_at timestamp)")
+    print("\nGet tweets with customization - (5 tweets only with created_at timestamp)")
     params = {'max_results': 5, 'tweet.fields': 'created_at'}
     tweets = api.request(f'users/:{USER_ID}/tweets', params)
     for t in tweets:
         print(t)
         
     # Get next 5 tweets
-    print()
-    print("Get next 5 tweets")
+    print("\nGet next 5 tweets")
     next_token = tweets.json()['meta']['next_token']
     params = {'max_results': 5, 'tweet.fields': 'created_at', 'pagination_token': next_token}
     tweets = api.request(f'users/:{USER_ID}/tweets', params)
@@ -173,4 +172,4 @@ def get_tweets(screen_name):
 
 if __name__ == '__main__':
 	#pass in the username of the account you want to download
-	get_tweets("varkhalinex")
+	get_tweets(test_username)
