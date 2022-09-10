@@ -11,20 +11,21 @@ testuid = config('test_user_id')
 # To set your environment variables in terminal run the following:
 # export 'BEARER_TOKEN'='<your_bearer_token>'
 
+t_pre = "tweet.fields="
+m_pre = "&expansions=attachments.media_keys&media.fields="
+
 def create_url(id):
-    tweet_fields = "tweet.fields=attachments,text"
-    media_fields = "&expansions=attachments.media_keys&media.fields=preview_image_url,type,url"
+    tweet_fields = t_pre + "attachments,text"
+    media_fields = m_pre + "preview_image_url,type,url"
     # You can adjust ids to include a single Tweets.
     # Or you can add to up to 100 comma-separated IDs
     url = "https://api.twitter.com/2/users/{}/liked_tweets".format(id)
-    #url = "https://api.twitter.com/2/users/{}/retweeted_by".format(id)
     return url, tweet_fields+media_fields
 
 def create_url(id, mode):
-    tweet_fields = "tweet.fields=attachments,text"
-    media_fields = "&expansions=attachments.media_keys&media.fields=preview_image_url,type,url"
-    url = "https://api.twitter.com/2/users/{}/liked_tweets".format(id)
-    #url = "https://api.twitter.com/2/users/{}/retweeted_by".format(id)
+    tweet_fields = t_pre + "attachments,text"
+    media_fields = m_pre + "preview_image_url,type,url"
+    url = "https://api.twitter.com/2/users/{}/retweeted_by".format(id)
     return url, tweet_fields+media_fields
 
 def bearer_oauth(r):
