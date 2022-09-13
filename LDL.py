@@ -49,10 +49,11 @@ def convert_url(url):
 def download_image(url):
     
     file_name = url[28:43] + '.' + url[51:54]
-    
+
     script_dir = os.path.dirname(__file__)
     rel_path = "downloads/" + file_name
     path = os.path.join(script_dir, rel_path)
+    
     img_data = requests.get(url).content
     print("saving " + file_name + " to " + path)
     with open(path, 'wb') as handler:
