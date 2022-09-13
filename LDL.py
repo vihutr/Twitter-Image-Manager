@@ -1,7 +1,7 @@
 import requests
 import os
 import json
-import pandas as pd
+#import pandas as pd
 
 from decouple import config
 
@@ -41,14 +41,44 @@ def connect_to_endpoint(url, tweet_fields):
         )
     return response.json()
 
+def convert_url(url):
+    ext = url[-3:]
+    res = url[:-4] + '?format=' + ext + '&name=orig'
+    return res
+
+def download_image(url):
+    
+    file_name = url[28:43] + '.' + url[51:54]
+    
+    script_dir = os.path.dirname(__file__)
+    rel_path = "downloads/" + file_name
+    path = os.path.join(script_dir, rel_path)
+    img_data = requests.get(url).content
+    print("saving " + file_name + " to " + path)
+    with open(path, 'wb') as handler:
+        handler.write(img_data)
+
 
 def main():
     #inp = input('STATEMENT')
     url, tweet_fields = create_url(testuid)
     json_response = connect_to_endpoint(url, tweet_fields)
     #json.dumps(json_response, indent=4, sort_keys=True)
-    for i in json_response.items():
-        print(i)
+    #print(json_response['includes']['media'][i]['url'])
+    for i in json_response['includes']['media']:
+        media_key = i.get('media_key')
+        media_type = i.get('type')
+        media_url = ''
+        if(media_type == 'photo'):
+            media_url = i.get('url')
+        elif(media_type == 'video'):
+            media_url = i.get('preview_image_url')
+        orig_url = convert_url(media_url)
+
+        print(orig_url)
+        download_image(orig_url)
+        #?format=jpg&name=orig
+
     #f = open("myfile.txt", "w")
     #f.write(json.dumps(json_response, indent=4, sort_keys=True))
 
