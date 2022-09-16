@@ -15,6 +15,7 @@ from decouple import config
 bearer_token = config('bearer_token')
 
 testuid = config('test_user_id')
+testusr = config('test_username')
 
 # To set your environment variables in terminal run the following:
 # export 'BEARER_TOKEN'='<your_bearer_token>'
@@ -23,6 +24,7 @@ def get_user_by_username(username):
     url = "https://api.twitter.com/2/users/by/username/{}".format(username)
     json_response = connect_to_endpoint(url, "")
     print("User Found")
+    global testuid
     testuid = json_response['data']['id']
     print("ID stored: " + testuid)
 
@@ -74,9 +76,15 @@ def download_image(url):
     file_name = url[28:43] + '.' + url[51:54]
 
     script_dir = os.path.dirname(__file__)
-    rel_path = "downloads\\" + file_name
-    path = os.path.join(script_dir, rel_path)
-    
+    rel_path = "downloads\\" + testusr
+    folder_path = os.path.join(script_dir, rel_path)
+    print(folder_path)
+    if os.path.exists(folder_path) == False:
+        os.makedirs(folder_path)
+
+    path = os.path.join(folder_path, file_name)
+    print(path)
+
     img_data = requests.get(url).content
     print("saving " + file_name + " to " + path)
     with open(path, 'wb') as handler:
@@ -87,31 +95,47 @@ def handle_json(json):
         media_key = i.get('media_key')
         media_type = i.get('type')
         media_url = ''
+        print(media_type)
         if(media_type == 'photo'):
             media_url = i.get('url')
-        elif(media_type == 'video'):
-            media_url = i.get('preview_image_url')
+        elif((media_type == 'video') or (media_type == 'animated_gif')):
+            #media_url = i.get('preview_image_url')
+            #ignore video/animated gif for now
+            continue
         print(media_url)
         orig_url = convert_url(media_url)
         print(orig_url)
+
         download_image(orig_url)
 
 def menu():
-    print("\nTwitter Tool")
+    print("-----------\n Main Menu\n-----------")
     print("1: Lookup/Store User ID")
     print("2: Download images from User's Liked tweets")
     print("3: Download images from User's tweets")
     print("4: Search Database")
     print("0: Exit")
 
+def title():
+    print(
+        '''
+  _____          _ _   _              _____           _ 
+ |_   _|_      _(_) |_| |_ ___ _ __  |_   _|__   ___ | |
+   | | \ \ /\ / / | __| __/ _ \ '__|   | |/ _ \ / _ \| |
+   | |  \ V  V /| | |_| ||  __/ |      | | (_) | (_) | |
+   |_|   \_/\_/ |_|\__|\__\___|_|      |_|\___/ \___/|_|
+        '''
+    )
+
 def main():
+    title()
     while(True):
         menu()
-        inp = input("\nInput: ")
+        inp = input("\nChoose an Option: ")
         if inp == '1':
-            search_name = input("\nUsername: ")
-            #lookup_uid(search_name)
-            get_user_by_username(search_name)
+            global testusr
+            testusr = input("\nInput a Username (no @): ")
+            get_user_by_username(testusr)
         elif inp == '2':
             url, tweet_fields = create_url(testuid, "liked_tweets")
             json_response = connect_to_endpoint(url, tweet_fields)
