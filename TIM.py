@@ -23,8 +23,6 @@ bearer_token = config('bearer_token')
 script_dir = os.path.dirname(__file__)
 testuid = config('test_user_id')
 testusr = config('test_username')
-global tweet_amount
-tweet_amount = 100
 
 # To set your environment variables in terminal run the following:
 # export 'BEARER_TOKEN'='<your_bearer_token>'
@@ -33,7 +31,8 @@ def init_db():
     conn = sqlite3.connect("database.db")
     cur = conn.cursor()
     #cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='images'")
-    cur.execute("CREATE TABLE if not exists Images (filename TEXT, localpath TEXT, id TEXT, media_key TEXT, type TEXT, tweet_url TEXT, image_url TEXT)")
+    cur.execute('''CREATE TABLE if not exists Images 
+    (filename TEXT, localpath TEXT, id TEXT, media_key TEXT, type TEXT, tweet_url TEXT, image_url TEXT)''')
     conn.commit()
     cur.close()
     conn.close()
@@ -153,9 +152,17 @@ def download_image(url):
         handler.write(img_data)
     
     img = cv2.imread(path, cv2.IMREAD_ANYCOLOR)
-    
+    screen_res = 1920, 1080
+    scale_width = screen_res[0] / img.shape[1]
+    scale_height = screen_res[1] / img.shape[0]
+    scale = min(scale_width, scale_height)
+    window_width = int(img.shape[1] * scale)
+    window_height = int(img.shape[0] * scale)
+    cv2.namedWindow(path, cv2.WINDOW_NORMAL)
+    cv2.resizeWindow(path, window_width, window_height)
+    cv2.moveWindow(path, 0,0)
     cv2.imshow(path, img)
-    cv2.waitKey(500)
+    cv2.waitKey(0)
     cv2.destroyAllWindows()
 
     pathinput = input("Folder Name:")    
@@ -229,6 +236,7 @@ def title():
 def main():
     init_db()
     title()
+    tweet_amount = 100
     while(True):
         menu()
         inp = input("\nChoose an Option: ")
