@@ -1,8 +1,10 @@
 import requests
 import os
+import sys
 import json
 import pandas as pd
 import sqlite3
+import cv2
 
 from TwitterAPI import TwitterAPI
 from decouple import config
@@ -14,11 +16,63 @@ from decouple import config
 #access_secret = config('access_secret')
 bearer_token = config('bearer_token')
 
+
+script_dir = os.path.dirname(__file__)
 testuid = config('test_user_id')
 testusr = config('test_username')
 
 # To set your environment variables in terminal run the following:
 # export 'BEARER_TOKEN'='<your_bearer_token>'
+
+def init_db():
+    conn = sqlite3.connect("database.db")
+    cur = conn.cursor()
+    #cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='images'")
+    cur.execute("CREATE TABLE if not exists Images (filename TEXT, localpath TEXT, id TEXT, media_key TEXT, type TEXT, tweet_url TEXT, image_url TEXT)")
+    conn.commit()
+    cur.close()
+    conn.close()
+
+def update_db(filename, localpath, media_key, m_type, i_url):
+    conn = sqlite3.connect("database.db")
+    cur = conn.cursor()
+    update_query = '''UPDATE Images 
+    SET filename = ?,
+    localpath = ?,
+    type = ?,
+    image_url = ?
+    WHERE media_key = ?'''
+    data_tuple = (filename, localpath, m_type, i_url, media_key)
+    cur.execute(update_query, data_tuple)
+    conn.commit()
+    cur.close()
+    conn.close()
+
+def add_to_db(filename, localpath, t_id, media_key, m_type, t_url, i_url):
+    conn = sqlite3.connect("database.db")
+    cur = conn.cursor()
+    insert_query = '''INSERT INTO Images
+        (filename, localpath, id, media_key, type, tweet_url, image_url) 
+        VALUES (?, ?, ?, ?, ?, ?, ?);'''
+    data_tuple = (filename, localpath, t_id, media_key, m_type, t_url, i_url)
+    cur.execute(insert_query, data_tuple)
+    conn.commit()
+    cur.close()
+    conn.close()
+
+def check_media_key(media_key):
+    conn = sqlite3.connect("database.db")
+    cur = conn.cursor()
+    cur.execute("SELECT media_key from Images where media_key=?", (media_key,))
+    data = cur.fetchall()
+    cur.close()
+    conn.close()
+    return(data)
+
+def display_table():
+    conn = sqlite3.connect("database.db")
+    cur = conn.cursor()
+    print(pd.read_sql_query("SELECT * FROM Images", conn))
 
 def get_user_by_username(username):
     url = "https://api.twitter.com/2/users/by/username/{}".format(username)
@@ -28,14 +82,14 @@ def get_user_by_username(username):
     testuid = json_response['data']['id']
     print("ID stored: " + testuid)
 
-def create_url(id, endpoint):
+def create_url(id, endpoint, max_tweets):
     t_pre = "&tweet.fields="
     m_pre = "&expansions=attachments.media_keys&media.fields="
     
     # Adjust parameters here
-    max_tweets = "100"
-    tweet_fields = ""
-    media_fields = "preview_image_url,type,url"
+    max_t = str(max_tweets)
+    t_fields = ""
+    m_fields = "preview_image_url,type,url"
     
     # You can adjust ids to include a single Tweets.
     # Or you can add to up to 100 comma-separated IDs
@@ -43,7 +97,7 @@ def create_url(id, endpoint):
     #url = "https://api.twitter.com/2/users/{}/liked_tweets".format(id)
     #url = "https://api.twitter.com/2/users/{}/tweets".format(id)
     url = ("https://api.twitter.com/2/users/{}/"+endpoint).format(id)
-    params = "max_results=" + max_tweets + t_pre + tweet_fields + m_pre + media_fields
+    params = "max_results=" + max_t + t_pre + t_fields + m_pre + m_fields
 
     return url, params
 
@@ -71,16 +125,19 @@ def convert_url(url):
     res = url[:-4] + '?format=' + ext + '&name=orig'
     return res
 
+def check_dir(path):
+    if os.path.exists(path) == False:
+        os.makedirs(path)
+
 def download_image(url):
     
+    #only for images
     file_name = url[28:43] + '.' + url[51:54]
 
-    script_dir = os.path.dirname(__file__)
     rel_path = "downloads\\" + testusr
     folder_path = os.path.join(script_dir, rel_path)
     print(folder_path)
-    if os.path.exists(folder_path) == False:
-        os.makedirs(folder_path)
+    check_dir(folder_path)
 
     path = os.path.join(folder_path, file_name)
     print(path)
@@ -89,12 +146,45 @@ def download_image(url):
     print("saving " + file_name + " to " + path)
     with open(path, 'wb') as handler:
         handler.write(img_data)
+    
+    img = cv2.imread(path, cv2.IMREAD_ANYCOLOR)
+    
+    cv2.imshow(path, img)
+    cv2.waitKey(500)
+    cv2.destroyAllWindows()
+
+    pathinput = input("Folder Name:")    
+    new_folder_path = os.path.join(folder_path, pathinput) 
+    check_dir(new_folder_path) 
+    new_path = os.path.join(new_folder_path, file_name)
+    if(not os.path.exists(new_path)):
+        print("moving " + path + " to " + new_path)
+        os.rename(path, new_path)
+    else:
+        print("file already exists, skipping")
+    return(file_name, new_path)
 
 def handle_json(json):
+    for i in json['data']:
+        for j in i['attachments']['media_keys']:
+            media_key = j
+            t_id = i.get('id')
+            t_text = i.get('text')
+            t_url = t_text[-23:]
+            # check db if exists
+            data = check_media_key(media_key)
+            if not data:
+                print("not found")
+                add_to_db("", "", t_id, media_key, "", t_url, "")
+                continue
+            print("found")
+
+
     for i in json['includes']['media']:
         media_key = i.get('media_key')
         media_type = i.get('type')
         media_url = ''
+        
         print(media_type)
         if(media_type == 'photo'):
             media_url = i.get('url')
@@ -105,8 +195,10 @@ def handle_json(json):
         print(media_url)
         orig_url = convert_url(media_url)
         print(orig_url)
+        file, path = download_image(orig_url)
 
-        download_image(orig_url)
+        # update db entry
+        update_db(file, path, media_key, media_type, orig_url)
 
 def menu():
     print("-----------\n Main Menu\n-----------")
@@ -114,6 +206,7 @@ def menu():
     print("2: Download images from User's Liked tweets")
     print("3: Download images from User's tweets")
     print("4: Search Database")
+    print("9: Sample JSON")
     print("0: Exit")
 
 def title():
@@ -128,6 +221,7 @@ def title():
     )
 
 def main():
+    init_db()
     title()
     while(True):
         menu()
@@ -137,15 +231,19 @@ def main():
             testusr = input("\nInput a Username (no @): ")
             get_user_by_username(testusr)
         elif inp == '2':
-            url, tweet_fields = create_url(testuid, "liked_tweets")
+            url, tweet_fields = create_url(testuid, "liked_tweets", 5)
             json_response = connect_to_endpoint(url, tweet_fields)
             handle_json(json_response)
         elif inp == '3':
-            url, tweet_fields = create_url(testuid, "tweets")
+            url, tweet_fields = create_url(testuid, "", 100)
             json_response = connect_to_endpoint(url, tweet_fields)
             handle_json(json_response)
         elif inp == '4':
-            print("To Be Implemented")
+            display_table()
+        elif inp == '9':
+            url, tweet_fields = create_url(testuid, "tweets", 5)
+            json_response = connect_to_endpoint(url, tweet_fields)
+            print(json.dumps(json_response, indent = 2))
         elif inp == '0':
             break
         else:
