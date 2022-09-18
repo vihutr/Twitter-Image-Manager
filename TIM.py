@@ -6,7 +6,7 @@ import pandas as pd
 import sqlite3
 import cv2
 
-from TwitterAPI import TwitterAPI
+#from TwitterAPI import TwitterAPI
 from decouple import config
 
 #Twitter API credentials using virtual environment tokens
@@ -16,10 +16,15 @@ from decouple import config
 #access_secret = config('access_secret')
 bearer_token = config('bearer_token')
 
+# TODO:
+## Split functions to separate files; database_functions.py at minimum
+## Deal with global variables; mutable dict? Classes?
 
 script_dir = os.path.dirname(__file__)
 testuid = config('test_user_id')
 testusr = config('test_username')
+global tweet_amount
+tweet_amount = 100
 
 # To set your environment variables in terminal run the following:
 # export 'BEARER_TOKEN'='<your_bearer_token>'
@@ -203,20 +208,21 @@ def handle_json(json):
 def menu():
     print("-----------\n Main Menu\n-----------")
     print("1: Lookup/Store User ID")
-    print("2: Download images from User's Liked tweets")
-    print("3: Download images from User's tweets")
-    print("4: Search Database")
+    print("2: Download images from user's liked tweets")
+    print("3: Download images from user's tweets")
+    print("4: Search database")
+    print("5: Change amount of tweets downloaded")
     print("9: Sample JSON")
     print("0: Exit")
 
 def title():
     print(
         '''
-  _____          _ _   _              _____           _ 
- |_   _|_      _(_) |_| |_ ___ _ __  |_   _|__   ___ | |
-   | | \ \ /\ / / | __| __/ _ \ '__|   | |/ _ \ / _ \| |
-   | |  \ V  V /| | |_| ||  __/ |      | | (_) | (_) | |
-   |_|   \_/\_/ |_|\__|\__\___|_|      |_|\___/ \___/|_|
+    ████████        ████████        ███    ███    
+       ██              ██           ████  ████    
+       ██              ██           ██ ████ ██    
+       ██              ██           ██  ██  ██    
+       ██    ██     ████████ ██     ██      ██ ██                                               
         '''
     )
 
@@ -231,15 +237,18 @@ def main():
             testusr = input("\nInput a Username (no @): ")
             get_user_by_username(testusr)
         elif inp == '2':
-            url, tweet_fields = create_url(testuid, "liked_tweets", 5)
+            url, tweet_fields = create_url(testuid, "liked_tweets", tweet_amount)
             json_response = connect_to_endpoint(url, tweet_fields)
             handle_json(json_response)
         elif inp == '3':
-            url, tweet_fields = create_url(testuid, "", 100)
+            url, tweet_fields = create_url(testuid, "tweets", tweet_amount)
             json_response = connect_to_endpoint(url, tweet_fields)
             handle_json(json_response)
         elif inp == '4':
             display_table()
+        elif inp == '5':
+            tweet_amount = input("\nInput a number: ")
+            print("Set new tweet amount to " + tweet_amount)
         elif inp == '9':
             url, tweet_fields = create_url(testuid, "tweets", 5)
             json_response = connect_to_endpoint(url, tweet_fields)
