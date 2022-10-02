@@ -5,6 +5,7 @@ import json
 import pandas as pd
 import sqlite3
 import cv2
+import database_functions as dbf
 
 #from TwitterAPI import TwitterAPI
 from decouple import config
@@ -17,8 +18,14 @@ from decouple import config
 bearer_token = config('bearer_token')
 
 # TODO:
-## Split functions to separate files; database_functions.py at minimum
+## Split functions to separate files; database_functions.py at minimum;
+## single connection for database? how to split into functions then?
 ## Deal with global variables; mutable dict? Classes?
+## Folderpath doesn't work on linux properly: \\ vs /
+## Account for extended tweets as RTs; investigate other "edge" cases
+## Database search/display as file structure;
+## how to update database when manipulating files through file manager
+## 
 
 script_dir = os.path.dirname(__file__)
 testuid = config('test_user_id')
@@ -26,57 +33,6 @@ testusr = config('test_username')
 
 # To set your environment variables in terminal run the following:
 # export 'BEARER_TOKEN'='<your_bearer_token>'
-
-def init_db():
-    conn = sqlite3.connect("database.db")
-    cur = conn.cursor()
-    #cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='images'")
-    cur.execute('''CREATE TABLE if not exists Images 
-    (filename TEXT, localpath TEXT, id TEXT, media_key TEXT, type TEXT, tweet_url TEXT, image_url TEXT)''')
-    conn.commit()
-    cur.close()
-    conn.close()
-
-def update_db(filename, localpath, media_key, m_type, i_url):
-    conn = sqlite3.connect("database.db")
-    cur = conn.cursor()
-    update_query = '''UPDATE Images 
-    SET filename = ?,
-    localpath = ?,
-    type = ?,
-    image_url = ?
-    WHERE media_key = ?'''
-    data_tuple = (filename, localpath, m_type, i_url, media_key)
-    cur.execute(update_query, data_tuple)
-    conn.commit()
-    cur.close()
-    conn.close()
-
-def add_to_db(filename, localpath, t_id, media_key, m_type, t_url, i_url):
-    conn = sqlite3.connect("database.db")
-    cur = conn.cursor()
-    insert_query = '''INSERT INTO Images
-        (filename, localpath, id, media_key, type, tweet_url, image_url) 
-        VALUES (?, ?, ?, ?, ?, ?, ?);'''
-    data_tuple = (filename, localpath, t_id, media_key, m_type, t_url, i_url)
-    cur.execute(insert_query, data_tuple)
-    conn.commit()
-    cur.close()
-    conn.close()
-
-def check_media_key(media_key):
-    conn = sqlite3.connect("database.db")
-    cur = conn.cursor()
-    cur.execute("SELECT media_key from Images where media_key=?", (media_key,))
-    data = cur.fetchall()
-    cur.close()
-    conn.close()
-    return(data)
-
-def display_table():
-    conn = sqlite3.connect("database.db")
-    cur = conn.cursor()
-    print(pd.read_sql_query("SELECT * FROM Images", conn))
 
 def get_user_by_username(username):
     url = "https://api.twitter.com/2/users/by/username/{}".format(username)
@@ -138,7 +94,7 @@ def download_image(url):
     #only for images
     file_name = url[28:43] + '.' + url[51:54]
 
-    rel_path = "downloads\\" + testusr
+    rel_path = "downloads/" + testusr
     folder_path = os.path.join(script_dir, rel_path)
     print(folder_path)
     check_dir(folder_path)
@@ -178,16 +134,18 @@ def download_image(url):
 
 def handle_json(json):
     for i in json['data']:
+        print(i)
+        
         for j in i['attachments']['media_keys']:
             media_key = j
             t_id = i.get('id')
             t_text = i.get('text')
             t_url = t_text[-23:]
             # check db if exists
-            data = check_media_key(media_key)
+            data = dbf.check_media_key(media_key)
             if not data:
                 print("not found")
-                add_to_db("", "", t_id, media_key, "", t_url, "")
+                dbf.add_to_db("", "", t_id, media_key, "", t_url, "")
                 continue
             print("found")
 
@@ -210,7 +168,7 @@ def handle_json(json):
         file, path = download_image(orig_url)
 
         # update db entry
-        update_db(file, path, media_key, media_type, orig_url)
+        dbf.update_db(file, path, media_key, media_type, orig_url)
 
 def menu():
     print("-----------\n Main Menu\n-----------")
@@ -234,7 +192,7 @@ def title():
     )
 
 def main():
-    init_db()
+    dbf.init_db()
     title()
     tweet_amount = 100
     while(True):
@@ -253,10 +211,13 @@ def main():
             json_response = connect_to_endpoint(url, tweet_fields)
             handle_json(json_response)
         elif inp == '4':
-            display_table()
+            dbf.display_table()
         elif inp == '5':
-            tweet_amount = input("\nInput a number: ")
-            print("Set new tweet amount to " + tweet_amount)
+            tweet_amount = int(input("\nInput a number from 5 to 100: "))
+            while(tweet_amount < 5 or tweet_amount > 100):
+                print("Number not in proper range.")
+                tweet_amount = int(input("\nInput a number from 5 to 100: "))
+            print("Set new tweet amount to " + str(tweet_amount))
         elif inp == '9':
             url, tweet_fields = create_url(testuid, "tweets", 5)
             json_response = connect_to_endpoint(url, tweet_fields)

@@ -2,3 +2,4 @@
 /env
 /downloads
 /database.db
+/__pycache__
