@@ -18,6 +18,7 @@ from decouple import config
 bearer_token = config('bearer_token')
 
 # TODO:
+## URGENT: fix key error: attachments
 ## Split functions to separate files; database_functions.py at minimum;
 ## single connection for database? how to split into functions then?
 ## Deal with global variables; mutable dict? Classes?
@@ -93,8 +94,8 @@ def download_image(url):
     
     #only for images
     file_name = url[28:43] + '.' + url[51:54]
-
-    rel_path = "downloads/" + testusr
+    
+    rel_path = os.path.join("downloads", testusr)
     folder_path = os.path.join(script_dir, rel_path)
     print(folder_path)
     check_dir(folder_path)
@@ -133,6 +134,27 @@ def download_image(url):
     return(file_name, new_path)
 
 def handle_json(json):
+    for i in json['includes']['media']:
+        media_key = i.get('media_key')
+        media_type = i.get('type')
+        media_url = ''
+        
+        print(media_type)
+        if(media_type == 'photo'):
+            media_url = i.get('url')
+        elif((media_type == 'video') or (media_type == 'animated_gif')):
+            #media_url = i.get('preview_image_url')
+            #ignore video/animated gif for now
+            continue
+        print(media_url)
+        orig_url = convert_url(media_url)
+        print(orig_url)
+        file, path = download_image(orig_url)
+
+        # update db entry
+        dbf.add_to_db(file, path, "", media_key, "", t_url, "")
+        dbf.update_db(file, path, media_key, media_type, orig_url)
+    
     for i in json['data']:
         print(i)
         
