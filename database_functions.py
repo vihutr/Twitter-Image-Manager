@@ -23,16 +23,12 @@ def add_to_db(filename, localpath, t_id, media_key, m_type, t_url, i_url):
     cur.close()
     conn.close()
 
-def update_db(filename, localpath, media_key, m_type, i_url):
+def update_db(t_id, t_url, media_key):
     conn = sqlite3.connect("database.db")
     cur = conn.cursor()
-    update_query = '''UPDATE Images 
-    SET filename = ?,
-    localpath = ?,
-    type = ?,
-    image_url = ?
-    WHERE media_key = ?'''
-    data_tuple = (filename, localpath, m_type, i_url, media_key)
+    update_query = '''UPDATE Images SET id = ?, tweet_url = ? WHERE media_key = ?'''
+    data_tuple = (t_id, t_url, media_key,)
+    print(data_tuple)
     cur.execute(update_query, data_tuple)
     conn.commit()
     cur.close()

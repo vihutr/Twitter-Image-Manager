@@ -18,15 +18,13 @@ from decouple import config
 bearer_token = config('bearer_token')
 
 # TODO:
-## URGENT: fix key error: attachments
-## Split functions to separate files; database_functions.py at minimum;
+## URGENT: fix key error: attachment - extended tweets do not include proper fields
+## -> Account for extended tweets as RTs; investigate other "edge" cases
+## Split functions to separate files
 ## single connection for database? how to split into functions then?
 ## Deal with global variables; mutable dict? Classes?
-## Folderpath doesn't work on linux properly: \\ vs /
-## Account for extended tweets as RTs; investigate other "edge" cases
 ## Database search/display as file structure;
 ## how to update database when manipulating files through file manager
-## 
 
 script_dir = os.path.dirname(__file__)
 testuid = config('test_user_id')
@@ -146,14 +144,21 @@ def handle_json(json):
             #media_url = i.get('preview_image_url')
             #ignore video/animated gif for now
             continue
+
+        check_mkey = dbf.check_media_key(media_key)
+        if check_mkey:
+            print("found")
+            continue
+        print("not found")
+
         print(media_url)
         orig_url = convert_url(media_url)
         print(orig_url)
         file, path = download_image(orig_url)
 
         # update db entry
-        dbf.add_to_db(file, path, "", media_key, "", t_url, "")
-        dbf.update_db(file, path, media_key, media_type, orig_url)
+        dbf.add_to_db(file, path, "", media_key, media_type, "", orig_url)
+        
     
     for i in json['data']:
         print(i)
@@ -164,33 +169,7 @@ def handle_json(json):
             t_text = i.get('text')
             t_url = t_text[-23:]
             # check db if exists
-            data = dbf.check_media_key(media_key)
-            if not data:
-                print("not found")
-                dbf.add_to_db("", "", t_id, media_key, "", t_url, "")
-                continue
-            print("found")
-
-
-    for i in json['includes']['media']:
-        media_key = i.get('media_key')
-        media_type = i.get('type')
-        media_url = ''
-        
-        print(media_type)
-        if(media_type == 'photo'):
-            media_url = i.get('url')
-        elif((media_type == 'video') or (media_type == 'animated_gif')):
-            #media_url = i.get('preview_image_url')
-            #ignore video/animated gif for now
-            continue
-        print(media_url)
-        orig_url = convert_url(media_url)
-        print(orig_url)
-        file, path = download_image(orig_url)
-
-        # update db entry
-        dbf.update_db(file, path, media_key, media_type, orig_url)
+            dbf.update_db(t_id, t_url, media_key)
 
 def menu():
     print("-----------\n Main Menu\n-----------")
