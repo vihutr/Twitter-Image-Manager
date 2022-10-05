@@ -2,4 +2,5 @@
 /env
 /downloads
 /database.db
+/*.db
 /__pycache__
