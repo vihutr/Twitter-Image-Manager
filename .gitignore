@@ -2,6 +2,10 @@
 /env
 /downloads
 /database.db
+/databases
+/etc txt
+/localbackup
 /*.db
 /__pycache__
 /testmodules
+/*.log
