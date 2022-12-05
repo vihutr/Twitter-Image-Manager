@@ -9,3 +9,4 @@
 /__pycache__
 /testmodules
 /*.log
+/*.ps1
