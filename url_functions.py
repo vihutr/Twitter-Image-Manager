@@ -1,3 +1,27 @@
+import requests
+from decouple import config
+
+bearer_token = config('bearer_token')
+# To set your environment variables in terminal run the following:
+# export 'BEARER_TOKEN'='<your_bearer_token>'
+
+def bearer_oauth(r):
+    r.headers['Authorization'] = f'Bearer {bearer_token}'
+    r.headers['User-Agent'] = 'v2TwitterImagePython'
+    return r
+
+def connect_to_endpoint(url, tweet_fields):
+    response = requests.request(
+        'GET', url, auth=bearer_oauth, params=tweet_fields)
+    print(response.url)
+    #print(response.status_code)
+    if response.status_code != 200:
+        raise Exception(
+            'Request returned an error: {} {}'.format(
+                response.status_code, response.text
+            )
+        )
+    return response.json()
 
 def get_user_by_username(username):
     url = 'https://api.twitter.com/2/users/by/username/{}'.format(username)
@@ -19,10 +43,7 @@ def create_url_tweets(id, max_tweets):
     max_t = str(max_tweets)
     
     url = 'https://api.twitter.com/2/users/{}/tweets'.format(id)
-    #url = ('https://api.twitter.com/2/users/{}/tweets?expansions=attachments.poll_ids,attachments.media_keys,author_id,entities.mentions.username,geo.place_id,in_reply_to_user_id,referenced_tweets.id,referenced_tweets.id.author_id&tweet.fields=attachments,author_id,context_annotations,conversation_id,created_at,entities,geo,id,in_reply_to_user_id,lang,possibly_sensitive,public_metrics,referenced_tweets,reply_settings,source,text,withheld&user.fields=created_at,description,entities,id,location,name,pinned_tweet_id,profile_image_url,protected,public_metrics,url,username,verified,withheld&place.fields=contained_within,country,country_code,full_name,geo,id,name,place_type&poll.fields=duration_minutes,end_datetime,id,options,voting_status&media.fields=duration_ms,height,media_key,preview_image_url,type,url,width,public_metrics,non_public_metrics,organic_metrics,promoted_metrics'.format(id)
     
-    #params = 'expansions=attachments.poll_ids,attachments.media_keys,author_id,entities.mentions.username,geo.place_id,in_reply_to_user_id,referenced_tweets.id,referenced_tweets.id.author_id&tweet.fields=attachments,author_id,context_annotations,conversation_id,created_at,entities,geo,id,in_reply_to_user_id,lang,possibly_sensitive,public_metrics,referenced_tweets,reply_settings,source,text,withheld&user.fields=created_at,description,entities,id,location,name,pinned_tweet_id,profile_image_url,protected,public_metrics,url,username,verified,withheld&place.fields=contained_within,country,country_code,full_name,geo,id,name,place_type&poll.fields=duration_minutes,end_datetime,id,options,voting_status&media.fields=duration_ms,height,media_key,preview_image_url,type,url,width,public_metrics,non_public_metrics,organic_metrics,promoted_metrics'
-
     params = 'max_results=' + max_t + tweet_fields + expansions + media_fields + user_fields + place_fields + poll_fields
 
     return url, params
