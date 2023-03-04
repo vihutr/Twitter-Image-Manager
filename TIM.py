@@ -28,7 +28,6 @@ from decouple import config
 ### attachment - extended tweets do not include proper fields
 ### liked tweets that are quote tweets
 ## -> Account for extended tweets as RTs; investigate other "edge" cases
-## Split functions to separate files
 ## single connection for database? how to split into functions then?
 ## Deal with global variables; mutable dict? Classes?
 ## Database search/display as file structure;
@@ -41,7 +40,6 @@ from decouple import config
 # create class(es) for the following and incoporate into main function
 
 script_dir = os.path.dirname(__file__)
-
 
 all_fields_tweet_by_id = '&tweet.fields=attachments,author_id,context_annotations,conversation_id,created_at,edit_controls,edit_history_tweet_ids,entities,geo,id,in_reply_to_user_id,lang,possibly_sensitive,public_metrics,referenced_tweets,reply_settings,source,text,withheld&expansions=attachments.media_keys,attachments.poll_ids,author_id,edit_history_tweet_ids,entities.mentions.username,geo.place_id,in_reply_to_user_id,referenced_tweets.id,referenced_tweets.id.author_id&media.fields=alt_text,duration_ms,height,media_key,preview_image_url,public_metrics,type,url,variants,width&poll.fields=duration_minutes,end_datetime,id,options,voting_status&user.fields=created_at,description,entities,id,location,name,pinned_tweet_id,profile_image_url,protected,public_metrics,url,username,verified,withheld&place.fields=contained_within,country,country_code,full_name,geo,id,name,place_type'
 
@@ -77,7 +75,14 @@ class TwitterUser:
             dbf.add_username(self.username, self.userid, '', '')
         else:
             self.like = newest[0][0] 
-            self.tweet = newest[0][1] 
+            self.tweet = newest[0][1]
+
+    def update_newest(self, type, newest):
+        if type == LIKE:
+            self.like = newest
+        elif type == TWEET:
+            self.tweet = newest
+
 #TwitterUser = TwitterUser(defaultusr, defaultuid, newest_ids['like'], newest_ids['tweet'])
 
 def get_orig_image_url(url):
@@ -86,7 +91,6 @@ def get_orig_image_url(url):
     print(url,ext)
     result = url + '?format=' + ext + '&name=orig'
     return result
-
 def handle_json(json, jtype, sort, CurrentUser):
     #newest_ids[likes] = config('last_liked')
     #newest_ids[tweets] = config('last_tweet')
@@ -175,7 +179,6 @@ def handle_json(json, jtype, sort, CurrentUser):
                         falsevideofilelist.write(media_url + '')
                         falsevideofilelist.close()
 
-
                     continue
                     # currently only dl's first video/agif given multiple in a single tweet, fix with ffmpeg and manually parsing ytdl extract info json?
 
@@ -215,17 +218,17 @@ def main():
     defaultuid = config('default_user_id')
     defaultusr = config('default_username')
     most_recent_ids = dbf.lookup_newest_ids(defaultusr)
-    if not most_recent_ids :
+    if not most_recent_ids:
         dbf.add_username(defaultusr, defaultuid, '', '')
         most_recent_ids = [['0','0']]
 
     CurrentUser = TwitterUser(defaultusr, defaultuid, most_recent_ids[0][0], most_recent_ids[0][1])
-    print(CurrentUser)
 
     tweet_amount = 100
     sort = False
 
     while(True):
+        print(CurrentUser)
         menu()
         inp = input("\nChoose an Option: ")
         if inp == '1':
@@ -241,6 +244,7 @@ def main():
             next_token = json_response['meta']['next_token']
             print(newest_id)
             dbf.update_newest(CurrentUser.username, LIKE, newest_id)
+            CurrentUser.update_newest(LIKE, newest_id)
             f = open('jsondump.txt', 'w')
             f.write(json.dumps(json_response, indent=4, sort_keys=True))
             loop = handle_json(json_response, LIKE, sort, CurrentUser)
@@ -253,6 +257,7 @@ def main():
                 next_token = json_response['meta']['next_token']
                 loop = handle_json(json_response, LIKE, sort, CurrentUser)
                 pagecount += 1
+
         elif inp == '3':
             url, tweet_fields = urlf.create_url(CurrentUser.userid, 'tweets', tweet_amount, 'N/A')
             json_response = urlf.connect_to_endpoint(url, tweet_fields)
@@ -260,6 +265,7 @@ def main():
             next_token = json_response['meta']['next_token']
             print(newest_id)
             dbf.update_newest(CurrentUser.username, TWEET, newest_id)
+            CurrentUser.update_newest(TWEET, newest_id)
             f = open('jsondump.txt', 'w')
             f.write(json.dumps(json_response, indent=4, sort_keys=True))
             loop = handle_json(json_response, TWEET, sort, CurrentUser)
