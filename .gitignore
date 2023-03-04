@@ -10,3 +10,5 @@
 /testmodules
 /*.log
 /*.ps1
+/tempdownloads
+/check.txt

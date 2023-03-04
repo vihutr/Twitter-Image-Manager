@@ -48,6 +48,17 @@ all_fields_tweet_by_id = '&tweet.fields=attachments,author_id,context_annotation
 LIKE = 'like'
 TWEET  = 'tweet'
 
+class Instance:
+    def __init__(self, user, options):
+        self.user = user
+        self.options = options
+
+class Options:
+    def __init__(self, sort, download_path, download_amount):
+        self.sort = sort
+        self.download_path = download_path
+        self.download_amount = self.download_amount
+
 class TwitterUser:
     def __init__(self, username, userid, like, tweet):
         self.username = username
@@ -151,11 +162,20 @@ def handle_json(json, jtype, sort, CurrentUser):
                 if media_key in video_mkeys:
                     # maybe add previewing later with mpv, for now stuff into unsorted default folder
                     vid_dl = ytdl.VideoDownloader(animated_path, sort)
-                    media_url, file_name = vid_dl.download_video(t_url)
-                    path = os.path.join(animated_path, file_name)
-                    print('Full Info of video:')
-                    print(file_name, path, t_id, media_key, video_mkeys[media_key], t_url, media_url)
-                    dbf.add_to_db(file_name, path, t_id, media_key, video_mkeys[media_key], t_url, media_url)
+                    try:
+                        media_url, file_name = vid_dl.download_video(t_url)
+                        path = os.path.join(animated_path, file_name)
+                        print('Full Info of video:')
+                        print(file_name, path, t_id, media_key, video_mkeys[media_key], t_url, media_url)
+                        dbf.add_to_db(file_name, path, t_id, media_key, video_mkeys[media_key], t_url, media_url)
+                    except:
+                        print("False Video/Video within tweet static images")
+                        falsevideofilelist = open("check.txt", "a")
+                        falsevideofilelist.writeline(t_url + '\n')
+                        falsevideofilelist.write(media_url + '')
+                        falsevideofilelist.close()
+
+
                     continue
                     # currently only dl's first video/agif given multiple in a single tweet, fix with ffmpeg and manually parsing ytdl extract info json?
 
