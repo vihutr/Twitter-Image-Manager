@@ -29,7 +29,7 @@ def get_user_by_username(username):
     print("User Found")
     global defaultuid
     defaultuid = json_response['data']['id']
-    print("ID stored: " + defaultuid)
+    print("User ID: " + defaultuid)
     return defaultuid
 
 def create_url_tweets(id, max_tweets):
