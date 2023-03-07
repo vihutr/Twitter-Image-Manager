@@ -121,7 +121,6 @@ def handle_json(json, jtype, sort, CurrentUser):
     for i in json['includes']['media']:
         media_key = i.get('media_key')
         media_type = i.get('type')
-        print(media_type)
         if (dbf.check_media_key(media_key)):
             print(f"{media_key} found in database")
             continue
