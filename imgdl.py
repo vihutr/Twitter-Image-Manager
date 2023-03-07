@@ -36,7 +36,7 @@ class ImageDownloader:
         path = os.path.join(self.output_dir, file_name)
         print(path)
         img_data = requests.get(url).content
-        print(f"saving {file_name} to {path}")
+        print(f"saving {file_name} to {path}\n")
         with open(path, 'wb') as handler:
             handler.write(img_data)
         if not self.sort:
