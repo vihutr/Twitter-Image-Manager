@@ -88,9 +88,10 @@ class TwitterUser:
 def get_orig_image_url(url):
     #?format=ext&name=orig
     url,ext = url.rsplit('.', 1)
-    print(url,ext)
+    #printf(url,ext)
     result = url + '?format=' + ext + '&name=orig'
     return result
+
 def handle_json(json, jtype, sort, CurrentUser):
     #newest_ids[likes] = config('last_liked')
     #newest_ids[tweets] = config('last_tweet')
@@ -137,7 +138,7 @@ def handle_json(json, jtype, sort, CurrentUser):
             media_url = get_orig_image_url(media_url)
             img_dl = imgdl.ImageDownloader(folder_path, sort)
             file, path = img_dl.download_image(media_url, CurrentUser.username)
-
+            #
             print(media_url)
             dbf.add_to_db(file, path, '', media_key, media_type, '', media_url)
 
