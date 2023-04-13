@@ -175,7 +175,7 @@ def handle_json(json, jtype, sort, CurrentUser):
                     except:
                         print("False Video/Video within tweet static images")
                         falsevideofilelist = open("check.txt", "a")
-                        falsevideofilelist.writeline(t_url + '\n')
+                        falsevideofilelist.write(t_url + '\n')
                         falsevideofilelist.write(media_url + '')
                         falsevideofilelist.close()
 
