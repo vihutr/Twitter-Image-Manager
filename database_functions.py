@@ -94,5 +94,14 @@ def display_table():
     conn = sqlite3.connect(database_path)
     cur = conn.cursor()
     print(pd.read_sql_query("SELECT * FROM Images", conn))
+
     cur.close()
     conn.close()
+
+def convert_table():
+    conn = sqlite3.connect(database_path)
+    cur = conn.cursor()
+    #Do something to convert to usable module for gui
+    cur.close()
+    conn.close()
+    
